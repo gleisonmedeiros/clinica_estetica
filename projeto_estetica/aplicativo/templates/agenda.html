@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Cadastro de Agenda{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Cadastro de Agenda</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        {{ form.nome.label_tag }}
+                        {{ form.nome }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.telefone.label_tag }}
+                        {{ form.telefone }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.data.label_tag }}
+                            {{ form.data }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.horario.label_tag }}
+                            {{ form.horario }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.tipo_pacote.label_tag }}
+                        {{ form.tipo_pacote }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.quantidade_pacote.label_tag }}
+                        {{ form.quantidade_pacote }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.quantidade_pacote_restante.label_tag }}
+                        {{ form.quantidade_pacote_restante }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.forma_pagamento.label_tag }}
+                        {{ form.forma_pagamento }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.valor.label_tag }}
+                        {{ form.valor }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Salvar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- jQuery e jQuery UI (CDN) -->
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+<script>
+    $(function() {
+        $("#id_nome").autocomplete({
+            source: "{% url 'autocomplete_cliente' %}",
+            minLength: 1,
+        });
+    });
+</script>
+{% endblock %}
