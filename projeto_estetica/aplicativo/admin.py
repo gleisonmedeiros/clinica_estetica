@@ -10,7 +10,7 @@ class ClienteAdmin(admin.ModelAdmin):
 class AgendaAdmin(admin.ModelAdmin):
     list_display = ('cliente', 'data', 'horario', 'tipo_pacote', 'forma_pagamento', 'valor')
     list_filter = ('data', 'tipo_pacote', 'forma_pagamento')
-    search_fields = ('cliente__nome',)  # 'telefone' removido pois não existe mais
+    search_fields = ('cliente__nome',)  # 'telefone' removido pois não existe maiss
 
 @admin.register(Painel)
 class PainelAdmin(admin.ModelAdmin):
