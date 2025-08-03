@@ -25,6 +25,11 @@
         <li class="nav-item">
           <a class="nav-link" href="{% url 'painel_presenca' %}">Painel de Presença</a>
         </li>
+          <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'relatorio_presenca' %}active{% endif %}" href="{% url 'relatorio_presenca' %}">
+            Relatório de Presença
+          </a>
+        </li>
       </ul>
     </div>
   </div>

@@ -14,17 +14,18 @@ class Agenda(models.Model):
     telefone = models.CharField(max_length=20)    # digitado no form
     data = models.DateField()
     horario = models.TimeField()
-    tipo_pacote = models.CharField(max_length=50)
-    quantidade_pacote = models.PositiveIntegerField()
-    quantidade_pacote_restante = models.PositiveIntegerField()
-    forma_pagamento = models.CharField(max_length=30)
-    valor = models.DecimalField(max_digits=10, decimal_places=2)
+
+    # Campos opcionais
+    tipo_pacote = models.CharField(max_length=30, blank=True, null=True)
+    quantidade_pacote = models.CharField(max_length=30, blank=True, null=True)
+    forma_pagamento = models.CharField(max_length=30, blank=True, null=True)
+    valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     def __str__(self):
         return f"{self.nome} - {self.data} {self.horario}"
 
 class Painel(models.Model):
-    agenda = models.ForeignKey(Agenda, on_delete=models.CASCADE)
+    agenda = models.OneToOneField(Agenda, on_delete=models.CASCADE)
     presenca = models.BooleanField(default=False, help_text="Marque se o cliente compareceu")
 
     def __str__(self):

@@ -24,7 +24,7 @@
                 <!-- Tabela com header azul escuro, linhas com fundo branco e hover azul claro -->
                 <form method="POST">
                     {% csrf_token %}
-                    <input type="hidden" name="data" value="{{ data_selecionada }}">
+                    <input type="hidden" name="data" value="{{ data_selecionada|date:'Y-m-d' }}">
 
                     <table class="table table-striped table-bordered text-center align-middle">
                         <thead class="table-primary"> <!-- Usar table-primary para cabeçalho azul -->
@@ -34,8 +34,7 @@
                                 <th>Data</th>
                                 <th>Horário</th>
                                 <th>Tipo de Serviço</th>
-                                <th>Qtd Pacote</th>
-                                <th>Qtd Pacote Restante</th>
+                                <th>Quantidade Pacote</th>
                                 <th>Forma Pagamento</th>
                                 <th>Valor</th>
                                 <th>Compareceu</th>
@@ -54,7 +53,6 @@
                                 <td>{{ agenda.horario }}</td>
                                 <td>{{ agenda.tipo_pacote }}</td>
                                 <td>{{ agenda.quantidade_pacote }}</td>
-                                <td>{{ agenda.quantidade_pacote_restante }}</td>
                                 <td>{{ agenda.forma_pagamento }}</td>
                                 <td>{{ agenda.valor }}</td>
                                 <td>

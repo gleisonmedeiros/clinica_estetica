@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Relatório de Presença{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>Relatório de Presença</h2>
+
+    <form method="get" class="mb-4 d-flex align-items-end gap-2" style="max-width: 350px;">
+  <div style="display: flex; flex-direction: column;">
+    <label for="data" class="form-label mb-1">Selecione a Data:</label>
+    <input type="date" id="data" name="data" value="{{ data_selecionada|date:'Y-m-d' }}" class="form-control" style="width: 200px;">
+  </div>
+  <button type="submit" class="btn btn-primary mb-1">Filtrar</button>
+</form>
+
+
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="card text-white bg-success mb-3" style="padding: 0.5rem;">
+          <div class="card-body text-center py-2">
+            <h5 class="card-title mb-1" style="font-size: 1rem;">Presentes</h5>
+            <p class="card-text mb-0" style="font-size: 1.5rem; font-weight: 600;">{{ total_presentes }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card text-white bg-danger mb-3" style="padding: 0.5rem;">
+          <div class="card-body text-center py-2">
+            <h5 class="card-title mb-1" style="font-size: 1rem;">Faltantes</h5>
+            <p class="card-text mb-0" style="font-size: 1.5rem; font-weight: 600;">{{ total_faltantes }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card text-white bg-info mb-3" style="padding: 0.5rem;">
+          <div class="card-body text-center py-2">
+            <h5 class="card-title mb-1" style="font-size: 1rem;">Lucro Total</h5>
+            <p class="card-text mb-0" style="font-size: 1.5rem; font-weight: 600;">R$ {{ lucro_total|floatformat:2 }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Presentes</h4>
+            <ul class="list-group">
+                {% for nome in nomes_presentes %}
+                <li class="list-group-item">{{ nome }}</li>
+                {% empty %}
+                <li class="list-group-item">Nenhum presente</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h4>Faltantes</h4>
+            <ul class="list-group">
+                {% for nome in nomes_faltantes %}
+                <li class="list-group-item">{{ nome }}</li>
+                {% empty %}
+                <li class="list-group-item">Nenhum faltante</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

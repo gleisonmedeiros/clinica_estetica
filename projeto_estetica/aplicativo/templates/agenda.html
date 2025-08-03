@@ -41,10 +41,7 @@
                         {{ form.quantidade_pacote.label_tag }}
                         {{ form.quantidade_pacote }}
                     </div>
-                    <div class="mb-3">
-                        {{ form.quantidade_pacote_restante.label_tag }}
-                        {{ form.quantidade_pacote_restante }}
-                    </div>
+
                     <div class="mb-3">
                         {{ form.forma_pagamento.label_tag }}
                         {{ form.forma_pagamento }}
@@ -69,11 +66,20 @@
 <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 
 <script>
-    $(function() {
-        $("#id_nome").autocomplete({
-            source: "{% url 'autocomplete_cliente' %}",
-            minLength: 1,
-        });
+$(function () {
+    $('#id_nome').autocomplete({
+        source: function (request, response) {
+            $.getJSON("{% url 'autocomplete_cliente' %}", {
+                term: request.term
+            }, function (data) {
+                response(data);
+            });
+        },
+        select: function (event, ui) {
+            $('#id_telefone').val(ui.item.telefone);
+        },
+        minLength: 1,
     });
+});
 </script>
 {% endblock %}
