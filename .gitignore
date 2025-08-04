@@ -2,6 +2,7 @@
 venv/
 .env/
 .venv/
+.env
 
 # Ignorar banco local
 db.sqlite3
