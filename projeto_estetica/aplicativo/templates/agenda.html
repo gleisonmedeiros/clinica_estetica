@@ -43,6 +43,11 @@
                     </div>
 
                     <div class="mb-3">
+                        {{ form.area.label_tag }}
+                        {{ form.area }}
+                    </div>
+
+                    <div class="mb-3">
                         {{ form.forma_pagamento.label_tag }}
                         {{ form.forma_pagamento }}
                     </div>
@@ -52,6 +57,14 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100">Salvar</button>
+
+                    {% if agenda %}
+                        <button type="submit" name="delete_agenda"
+            class="btn btn-danger w-100 mt-2"
+            onclick="return confirm('Tem certeza que deseja excluir este agendamento e o painel associado?')">
+        Excluir
+    </button>
+                    {% endif %}
                 </form>
             </div>
         </div>
@@ -77,6 +90,7 @@ $(function () {
         },
         select: function (event, ui) {
             $('#id_telefone').val(ui.item.telefone);
+            $('#id_area').val(ui.item.area);  // ✅ preenche área
         },
         minLength: 1,
     });

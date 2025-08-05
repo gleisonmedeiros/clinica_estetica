@@ -12,14 +12,16 @@ def cadastro_agenda(request):
         if form.is_valid():
             nome = form.cleaned_data['nome']
             telefone = form.cleaned_data['telefone']
+            area = form.cleaned_data['area']
 
             # Buscar cliente por nome (case-insensitive)
             cliente = Cliente.objects.filter(nome__iexact=nome).first()
             if cliente:
                 cliente.telefone = telefone
+                cliente.area = area
                 cliente.save()
             else:
-                cliente = Cliente.objects.create(nome=nome, telefone=telefone)
+                cliente = Cliente.objects.create(nome=nome, telefone=telefone,area=area)
 
             agenda = form.save(commit=False)
             agenda.cliente = cliente
@@ -36,7 +38,7 @@ def cadastro_agenda(request):
 def autocomplete_cliente(request):
     term = request.GET.get('term', '')
     clientes = Cliente.objects.filter(nome__istartswith=term)[:10]
-    results = [{'label': c.nome, 'value': c.nome, 'telefone': c.telefone} for c in clientes]
+    results = [{'label': c.nome, 'value': c.nome, 'telefone': c.telefone, 'area':c.area} for c in clientes]
     return JsonResponse(results, safe=False)
 
 
@@ -61,6 +63,7 @@ def painel_presenca(request):
             'id': agenda.id,
             'nome': agenda.cliente.nome if getattr(agenda, 'cliente', None) else '',
             'telefone': agenda.cliente.telefone if getattr(agenda, 'cliente', None) else '',
+            'area': agenda.cliente.area if getattr(agenda, 'cliente', None) else '',
             'data': agenda.data.strftime('%d/%m/%Y'),
             'horario': agenda.horario.strftime('%H:%M'),
             'tipo_pacote': agenda.tipo_pacote,
@@ -81,9 +84,10 @@ def painel_presenca(request):
             presenca_field = f"presenca_{agenda_info['id']}"
             presenca_valor = presenca_field in request.POST
 
-            painel, created = Painel.objects.get_or_create(agenda_id=agenda_info['id'])
-            painel.presenca = presenca_valor
-            painel.save()
+            painel = Painel.objects.filter(agenda_id=agenda_info['id']).first()
+            if painel:
+                painel.presenca = presenca_valor
+                painel.save()
 
         return redirect(f"{request.path}?data={data_painel.strftime('%Y-%m-%d')}")
 
@@ -98,14 +102,25 @@ def editar_agenda(request, pk):
     agenda = get_object_or_404(Agenda, pk=pk)
 
     if request.method == 'POST':
+
+        # Verifica se o usuário clicou no botão para deletar agenda (e painel)
+        if 'delete_agenda' in request.POST:
+            # Apaga o painel associado, se existir
+            Painel.objects.filter(agenda=agenda).delete()
+            # Apaga a agenda
+            agenda.delete()
+            return redirect('painel_presenca')
+
         form = AgendaForm(request.POST, instance=agenda)
         if form.is_valid():
             nome = form.cleaned_data['nome']
             telefone = form.cleaned_data['telefone']
+            area = form.cleaned_data['area']
 
             cliente = agenda.cliente
             cliente.nome = nome
             cliente.telefone = telefone
+            cliente.area = area
             cliente.save()
 
             agenda = form.save(commit=False)
@@ -119,10 +134,11 @@ def editar_agenda(request, pk):
         initial = {
             'nome': agenda.cliente.nome,
             'telefone': agenda.cliente.telefone,
+            'area': agenda.cliente.area,
         }
         form = AgendaForm(instance=agenda, initial=initial)
 
-    return render(request, 'agenda.html', {'form': form})
+    return render(request, 'agenda.html', {'form': form, 'agenda': agenda})
 
 
 def relatorio_presenca(request):

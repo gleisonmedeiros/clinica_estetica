@@ -42,6 +42,16 @@ class AgendaForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control'}),
         label="Telefone"
     )
+    area = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'id': 'id_area',
+            'class': 'form-control',
+            'autocomplete': 'off',  # para evitar autofill do navegador
+        }),
+        label="Área"
+    )
+
     tipo_pacote = forms.ChoiceField(
         required=False,
         choices=TIPO_PACOTE_CHOICES,

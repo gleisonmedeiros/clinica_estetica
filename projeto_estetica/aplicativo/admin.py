@@ -3,8 +3,8 @@ from .models import Cliente, Agenda, Painel
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'telefone')
-    search_fields = ('nome', 'telefone')
+    list_display = ('nome', 'telefone','area')
+    search_fields = ('nome', 'telefone','area')
 
 @admin.register(Agenda)
 class AgendaAdmin(admin.ModelAdmin):

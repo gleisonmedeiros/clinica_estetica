@@ -36,6 +36,7 @@
                                 <th>Tipo de Serviço</th>
                                 <th>Quantidade Pacote</th>
                                 <th>Forma Pagamento</th>
+                                <th>Área</th>
                                 <th>Valor</th>
                                 <th>Compareceu</th>
                             </tr>
@@ -53,6 +54,7 @@
                                 <td>{{ agenda.horario }}</td>
                                 <td>{{ agenda.tipo_pacote }}</td>
                                 <td>{{ agenda.quantidade_pacote }}</td>
+                                <td>{{ agenda.area }}</td>
                                 <td>{{ agenda.forma_pagamento }}</td>
                                 <td>{{ agenda.valor }}</td>
                                 <td>
@@ -61,7 +63,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="10" class="text-center">Nenhuma agenda encontrada para esta data.</td>
+                                <td colspan="11" class="text-center">Nenhuma agenda encontrada para esta data.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
