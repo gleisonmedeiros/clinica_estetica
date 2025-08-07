@@ -4,6 +4,14 @@ from .models import Agenda, Cliente, Painel
 from .forms import AgendaForm, PainelFiltroForm
 from django.views.decorators.http import require_http_methods
 from datetime import date
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from django.http import HttpResponse
+from reportlab.platypus import Paragraph, Spacer
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import cm
 
 
 def cadastro_agenda(request):
@@ -96,6 +104,69 @@ def painel_presenca(request):
         'agendas_info': agendas_info,
         'data_selecionada': data_selecionada,
     })
+
+
+@require_http_methods(["GET"])
+def exportar_pdf(request):
+    data_str = request.GET.get('data')
+    try:
+        data_selecionada = date.fromisoformat(data_str) if data_str else date.today()
+    except ValueError:
+        data_selecionada = date.today()
+
+    agendas = Agenda.objects.filter(data=data_selecionada).order_by('horario')
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Clientes_{data_selecionada}.pdf"'
+
+    buffer = []
+    doc = SimpleDocTemplate(response, pagesize=landscape(A4))
+    styles = getSampleStyleSheet()
+
+    data = [[
+        "Nome", "Telefone", "Data", "Horário", "Tipo", "Qtde", "Área", "Forma Pagamento", "Valor"
+    ]]
+
+    for agenda in agendas:
+        painel = Painel.objects.filter(agenda=agenda).first()
+        data.append([
+            agenda.cliente.nome if agenda.cliente else '',
+            agenda.cliente.telefone if agenda.cliente else '',
+            agenda.data.strftime('%d/%m/%Y'),
+            agenda.horario.strftime('%H:%M'),
+            agenda.tipo_pacote,
+            agenda.quantidade_pacote,
+            agenda.cliente.area if agenda.cliente else '',
+            agenda.forma_pagamento,
+            f"R$ {agenda.valor:.2f}",
+        ])
+
+    tabela = Table(data, repeatRows=1)
+    tabela.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d6efd')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f2f2")])
+    ]))
+    # Estilo customizado centralizado
+    titulo_style = ParagraphStyle(
+        name='TituloCentralizado',
+        parent=styles['Heading2'],
+        alignment=1,  # 0=left, 1=center, 2=right
+        spaceAfter=1 * cm  # Espaço abaixo do título
+    )
+
+    # Título centralizado com espaçamento
+    buffer.append(Paragraph(f"Clientes do dia - {data_selecionada.strftime('%d/%m/%Y')}", titulo_style))
+    buffer.append(tabela)
+
+    # Gera o PDF
+    doc.build(buffer)
+
+    return response
 
 
 def editar_agenda(request, pk):

@@ -7,4 +7,5 @@ urlpatterns = [
     path('autocomplete-cliente/', views.autocomplete_cliente, name='autocomplete_cliente'),
     path('cadastro-agenda/', views.cadastro_agenda, name='cadastro_agenda'),
     path('relatorio-presenca/', views.relatorio_presenca, name='relatorio_presenca'),
+    path('painel/exportar-pdf/', views.exportar_pdf, name='exportar_pdf'),
 ]
