@@ -108,6 +108,18 @@ def painel_presenca(request):
     })
 
 
+import time
+from django.views.decorators.http import require_http_methods
+from django.http import HttpResponse
+from datetime import date
+from io import BytesIO
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import cm
+from .models import Agenda
+
 @require_http_methods(["GET"])
 def exportar_pdf(request):
     print("Iniciando exportar_pdf")
@@ -122,13 +134,18 @@ def exportar_pdf(request):
         print("Erro ao converter data, usando data atual")
         data_selecionada = date.today()
 
+    print("Iniciando consulta no banco de dados...")
+    start_time = time.time()  # tempo início
+
     try:
-        print("Consultando banco de dados...")
-        agendas = list(Agenda.objects.filter(data=data_selecionada).select_related('cliente'))
-        print(f"Foram encontrados {len(agendas)} agendas para a data {data_selecionada}")
+        agendas = list(Agenda.objects.filter(data=data_selecionada).select_related('cliente').order_by('horario'))
     except Exception as e:
         print(f"Erro ao consultar banco: {e}")
         raise
+
+    elapsed_time = time.time() - start_time  # tempo fim - início
+    print(f"Consulta finalizada. Tempo gasto: {elapsed_time:.4f} segundos")
+    print(f"Foram encontrados {len(agendas)} agendas para a data {data_selecionada}")
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
@@ -158,7 +175,7 @@ def exportar_pdf(request):
                 agenda.forma_pagamento or "",
                 f"R$ {agenda.valor:.2f}" if agenda.valor is not None else ""
             ]
-            print(f"Adicionando linha: {linha}")
+            #print(f"Adicionando linha: {linha}")
             data.append(linha)
         except Exception as e:
             print(f"Erro nos dados da agenda id={agenda.id}: {e}")
@@ -193,6 +210,7 @@ def exportar_pdf(request):
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="clientes_{data_selecionada}.pdf"'
     return response
+
 
 
 def editar_agenda(request, pk):
