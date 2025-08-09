@@ -12,7 +12,9 @@ from django.http import HttpResponse
 from reportlab.platypus import Paragraph, Spacer
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm
-
+import traceback
+from io import BytesIO
+import time
 
 def cadastro_agenda(request):
     if request.method == "POST":
@@ -108,64 +110,88 @@ def painel_presenca(request):
 
 @require_http_methods(["GET"])
 def exportar_pdf(request):
+    print("Iniciando exportar_pdf")
+
     data_str = request.GET.get('data')
+    print(f"Parâmetro data recebido: {data_str}")
+
     try:
         data_selecionada = date.fromisoformat(data_str) if data_str else date.today()
+        print(f"Data convertida: {data_selecionada}")
     except ValueError:
+        print("Erro ao converter data, usando data atual")
         data_selecionada = date.today()
 
-    agendas = Agenda.objects.filter(data=data_selecionada).order_by('horario')
+    try:
+        print("Consultando banco de dados...")
+        agendas = list(Agenda.objects.filter(data=data_selecionada).select_related('cliente'))
+        print(f"Foram encontrados {len(agendas)} agendas para a data {data_selecionada}")
+    except Exception as e:
+        print(f"Erro ao consultar banco: {e}")
+        raise
 
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Clientes_{data_selecionada}.pdf"'
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
 
-    buffer = []
-    doc = SimpleDocTemplate(response, pagesize=landscape(A4))
-    styles = getSampleStyleSheet()
+    titulo_style = ParagraphStyle(
+        name="Titulo",
+        fontSize=16,
+        leading=20,
+        alignment=1,  # centro
+        spaceAfter=1 * cm
+    )
 
     data = [[
         "Nome", "Telefone", "Data", "Horário", "Tipo", "Qtde", "Área", "Forma Pagamento", "Valor"
     ]]
 
     for agenda in agendas:
-        painel = Painel.objects.filter(agenda=agenda).first()
-        data.append([
-            agenda.cliente.nome if agenda.cliente else '',
-            agenda.cliente.telefone if agenda.cliente else '',
-            agenda.data.strftime('%d/%m/%Y'),
-            agenda.horario.strftime('%H:%M'),
-            agenda.tipo_pacote,
-            agenda.quantidade_pacote,
-            agenda.cliente.area if agenda.cliente else '',
-            agenda.forma_pagamento,
-            f"R$ {agenda.valor:.2f}",
-        ])
+        try:
+            linha = [
+                agenda.cliente.nome if agenda.cliente else "",
+                agenda.cliente.telefone if agenda.cliente else "",
+                agenda.data.strftime('%d/%m/%Y'),
+                agenda.horario.strftime('%H:%M') if agenda.horario else "",
+                agenda.tipo_pacote or "",
+                agenda.quantidade_pacote or "",
+                agenda.cliente.area if agenda.cliente else "",
+                agenda.forma_pagamento or "",
+                f"R$ {agenda.valor:.2f}" if agenda.valor is not None else ""
+            ]
+            print(f"Adicionando linha: {linha}")
+            data.append(linha)
+        except Exception as e:
+            print(f"Erro nos dados da agenda id={agenda.id}: {e}")
 
     tabela = Table(data, repeatRows=1)
     tabela.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d6efd')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f2f2")])
     ]))
-    # Estilo customizado centralizado
-    titulo_style = ParagraphStyle(
-        name='TituloCentralizado',
-        parent=styles['Heading2'],
-        alignment=1,  # 0=left, 1=center, 2=right
-        spaceAfter=1 * cm  # Espaço abaixo do título
-    )
 
-    # Título centralizado com espaçamento
-    buffer.append(Paragraph(f"Clientes do dia - {data_selecionada.strftime('%d/%m/%Y')}", titulo_style))
-    buffer.append(tabela)
+    elementos = []
+    elementos.append(Paragraph(f"Clientes do dia - {data_selecionada.strftime('%d/%m/%Y')}", titulo_style))
+    elementos.append(Spacer(1, 12))
+    elementos.append(tabela)
 
-    # Gera o PDF
-    doc.build(buffer)
+    try:
+        print("Gerando PDF...")
+        doc.build(elementos)
+        print("PDF gerado com sucesso!")
+    except Exception as e:
+        print("Erro ao gerar PDF:")
+        import traceback
+        traceback.print_exc()
+        raise
 
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="clientes_{data_selecionada}.pdf"'
     return response
 
 
