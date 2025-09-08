@@ -60,10 +60,18 @@
 
                     {% if agenda %}
                         <button type="submit" name="delete_agenda"
-            class="btn btn-danger w-100 mt-2"
-            onclick="return confirm('Tem certeza que deseja excluir este agendamento e o painel associado?')">
-        Excluir
-    </button>
+                            class="btn btn-danger w-100 mt-2"
+                            onclick="return confirm('Tem certeza que deseja excluir este agendamento e o painel associado?')">
+                            Excluir
+                        </button>
+                    {% endif %}
+
+                    {% if agenda %}
+                        <button type="submit" name="copy_agenda"
+                        class="btn btn-secondary w-100 mt-2"
+                        onclick="return confirm('Deseja copiar este agendamento para um novo cadastro?')">
+                        Copiar
+                        </button>
                     {% endif %}
                 </form>
             </div>

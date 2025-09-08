@@ -2,22 +2,28 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from .models import Agenda, Cliente, Painel
 from .forms import AgendaForm, PainelFiltroForm
+
+import time
 from django.views.decorators.http import require_http_methods
-from datetime import date
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
-from reportlab.platypus import Paragraph, Spacer
+from datetime import date
+from io import BytesIO
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm
-import traceback
-from io import BytesIO
-import time
+from .models import Agenda
 
 def cadastro_agenda(request):
+    copiado = request.session.pop('agenda_copiada', None)
+    if copiado:
+        form = AgendaForm(initial=copiado)
+    else:
+        form = AgendaForm()
+
     if request.method == "POST":
+
         form = AgendaForm(request.POST)
         if form.is_valid():
             nome = form.cleaned_data['nome']
@@ -40,8 +46,6 @@ def cadastro_agenda(request):
             Painel.objects.get_or_create(agenda=agenda)
 
             return redirect('cadastro_agenda')
-    else:
-        form = AgendaForm()
     return render(request, 'agenda.html', {'form': form})
 
 
@@ -107,18 +111,6 @@ def painel_presenca(request):
         'data_selecionada': data_selecionada,
     })
 
-
-import time
-from django.views.decorators.http import require_http_methods
-from django.http import HttpResponse
-from datetime import date
-from io import BytesIO
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib import colors
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.units import cm
-from .models import Agenda
 
 @require_http_methods(["GET"])
 def exportar_pdf(request):
@@ -217,6 +209,20 @@ def editar_agenda(request, pk):
     agenda = get_object_or_404(Agenda, pk=pk)
 
     if request.method == 'POST':
+
+        if 'copy_agenda' in request.POST:
+            request.session['agenda_copiada'] = {
+                'nome': agenda.cliente.nome,
+                'telefone': agenda.cliente.telefone,
+                'area': agenda.cliente.area,
+                'horario': str(agenda.horario),
+                'tipo_pacote': agenda.tipo_pacote,
+                'quantidade_pacote': agenda.quantidade_pacote,
+                'forma_pagamento': agenda.forma_pagamento,
+                'valor': str(agenda.valor),
+                # 'data' propositalmente omitido
+            }
+            return redirect('cadastro_agenda')
 
         # Verifica se o usuário clicou no botão para deletar agenda (e painel)
         if 'delete_agenda' in request.POST:
