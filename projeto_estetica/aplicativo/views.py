@@ -58,26 +58,32 @@ def autocomplete_cliente(request):
 
 @require_http_methods(["GET", "POST"])
 def painel_presenca(request):
-    if request.method == "GET":
-        filtro_form = PainelFiltroForm(request.GET or None)
-    else:
-        filtro_form = PainelFiltroForm(request.POST or None)
+    filtro_form = PainelFiltroForm(request.GET if request.method == "GET" else request.POST)
 
-    if filtro_form.is_valid() and filtro_form.cleaned_data['data']:
-        data_selecionada = filtro_form.cleaned_data['data']
-    else:
-        data_selecionada = date.today()
+    data_selecionada = (
+        filtro_form.cleaned_data['data']
+        if filtro_form.is_valid() and filtro_form.cleaned_data.get('data')
+        else date.today()
+    )
 
-    agendas = Agenda.objects.filter(data=data_selecionada).order_by('horario')
+    # Pré-carrega cliente e painel para evitar N+1 queries
+    agendas = (
+        Agenda.objects
+        .filter(data=data_selecionada)
+        .select_related('cliente')
+        .order_by('horario')
+    )
+    paineis = {p.agenda_id: p for p in Painel.objects.filter(agenda__in=agendas)}
 
     agendas_info = []
     for agenda in agendas:
-        painel = Painel.objects.filter(agenda=agenda).first()
+        painel = paineis.get(agenda.id)
+        cliente = agenda.cliente
         agendas_info.append({
             'id': agenda.id,
-            'nome': agenda.cliente.nome if getattr(agenda, 'cliente', None) else '',
-            'telefone': agenda.cliente.telefone if getattr(agenda, 'cliente', None) else '',
-            'area': agenda.cliente.area if getattr(agenda, 'cliente', None) else '',
+            'nome': cliente.nome,
+            'telefone': cliente.telefone,
+            'area': cliente.area,
             'data': agenda.data.strftime('%d/%m/%Y'),
             'horario': agenda.horario.strftime('%H:%M'),
             'tipo_pacote': agenda.tipo_pacote,
@@ -91,17 +97,22 @@ def painel_presenca(request):
         data_str = request.POST.get('data')
         try:
             data_painel = date.fromisoformat(data_str) if data_str else date.today()
-        except ValueError:
+        except (ValueError, TypeError):
             data_painel = date.today()
 
+        # Atualiza todos os painéis em lote
+        painel_updates = []
         for agenda_info in agendas_info:
             presenca_field = f"presenca_{agenda_info['id']}"
             presenca_valor = presenca_field in request.POST
 
-            painel = Painel.objects.filter(agenda_id=agenda_info['id']).first()
-            if painel:
+            painel = paineis.get(agenda_info['id'])
+            if painel and painel.presenca != presenca_valor:
                 painel.presenca = presenca_valor
-                painel.save()
+                painel_updates.append(painel)
+
+        if painel_updates:
+            Painel.objects.bulk_update(painel_updates, ['presenca'])
 
         return redirect(f"{request.path}?data={data_painel.strftime('%Y-%m-%d')}")
 
@@ -263,24 +274,40 @@ def editar_agenda(request, pk):
 
 
 def relatorio_presenca(request):
-    data_selecionada = request.GET.get('data')
-    if data_selecionada:
-        data_obj = date.fromisoformat(data_selecionada)
-    else:
+    data_str = request.GET.get('data')
+    try:
+        data_obj = date.fromisoformat(data_str) if data_str else date.today()
+    except (ValueError, TypeError):
         data_obj = date.today()
 
-    agendas = Agenda.objects.filter(data=data_obj)
-    painels = Painel.objects.filter(agenda__in=agendas)
+    # Carrega agendas com cliente e painel em uma única consulta
+    agendas = (
+        Agenda.objects
+        .filter(data=data_obj)
+        .select_related('cliente')
+    )
+    paineis = (
+        Painel.objects
+        .filter(agenda__in=agendas)
+        .select_related('agenda__cliente')
+    )
 
-    presentes = painels.filter(presenca=True)
-    faltantes = painels.filter(presenca=False)
+    # Pré-processa os dados
+    total_presentes = total_faltantes = lucro_total = 0
+    nomes_presentes = []
+    nomes_faltantes = []
 
-    total_presentes = presentes.count()
-    total_faltantes = faltantes.count()
-    lucro_total = sum(p.agenda.valor for p in presentes if p.agenda.valor)
+    for painel in paineis:
+        cliente_nome = painel.agenda.cliente.nome
+        valor = painel.agenda.valor or 0
 
-    nomes_presentes = [p.agenda.cliente.nome for p in presentes]
-    nomes_faltantes = [p.agenda.cliente.nome for p in faltantes]
+        if painel.presenca:
+            total_presentes += 1
+            lucro_total += valor
+            nomes_presentes.append(cliente_nome)
+        else:
+            total_faltantes += 1
+            nomes_faltantes.append(cliente_nome)
 
     contexto = {
         'data_selecionada': data_obj,
