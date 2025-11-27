@@ -1,5 +1,5 @@
 from django import forms
-from .models import Agenda
+from .models import Agenda, Cliente
 
 
 class AgendaForm(forms.ModelForm):
@@ -88,4 +88,14 @@ class PainelFiltroForm(forms.Form):
                 'placeholder': 'Selecione a data',
             }
         )
+    )
+
+class ClienteForm(forms.Form):
+    nome = forms.ChoiceField(
+        choices=[('', 'Selecione um cliente')] + list(
+            Cliente.objects.all()
+            .order_by('nome')
+            .values_list('id', 'nome')
+        ),
+        label="Cliente",
     )

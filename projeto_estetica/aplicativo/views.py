@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from .models import Agenda, Cliente, Painel
-from .forms import AgendaForm, PainelFiltroForm
+from .models import Agenda, Cliente, Painel,ClienteLink
+from .forms import AgendaForm, PainelFiltroForm, ClienteForm
 
 import time
 from django.views.decorators.http import require_http_methods
@@ -13,7 +13,11 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm
-from .models import Agenda
+
+
+import uuid
+from django.utils.text import slugify
+
 
 def cadastro_agenda(request):
     copiado = request.session.pop('agenda_copiada', None)
@@ -319,3 +323,63 @@ def relatorio_presenca(request):
     }
 
     return render(request, 'relatorio_presenca.html', contexto)
+
+def gerar_codigo():
+    return uuid.uuid4().hex[:10]
+
+def asscontrato(request):
+    links = ClienteLink.objects.all()
+    form = ClienteForm(request.GET or None)
+    cliente_selecionado = None
+    link_gerado = None
+    link_completo = None  # <--- adicionar
+
+    if form.is_valid():
+        cliente_id = form.cleaned_data['nome']
+        cliente = Cliente.objects.get(id=cliente_id)
+        cliente_selecionado = cliente.nome
+
+        # ==== Criação do link único ====
+        codigo = gerar_codigo()
+        nome_slug = slugify(cliente.nome)
+
+        # URL relativa
+        url = f"/cliente/{nome_slug}/{codigo}/"
+
+        # URL completa (funciona no DEV e PRODUÇÃO)
+        link_completo = request.build_absolute_uri(url)
+
+        # Salva no banco
+        ClienteLink.objects.create(
+            cliente=cliente,
+            codigo=codigo,
+            link_completo=link_completo  # <--- salvar COMPLETA agora
+        )
+
+        link_gerado = url
+
+    context = {
+        "form": form,
+        "cliente_selecionado": cliente_selecionado,
+        "link_gerado": link_gerado,
+        "link_completo": link_completo,  # <---
+        "links": links,
+    }
+    return render(request, 'contrato.html', context)
+
+
+def excluir_link(request, pk):
+    link = get_object_or_404(ClienteLink, pk=pk)
+    link.delete()
+    return redirect("asscontrato")  # voltar para a página principal
+
+def mensagem_view(request, nome, codigo):
+
+    try:
+        link = ClienteLink.objects.get(codigo=codigo)
+        cliente = link.cliente
+    except ClienteLink.DoesNotExist:
+        return HttpResponse("Link inválido!")
+
+    return render(request, "assinatura.html", {"cliente": cliente})
+

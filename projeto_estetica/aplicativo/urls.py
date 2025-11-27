@@ -8,4 +8,12 @@ urlpatterns = [
     path('cadastro-agenda/', views.cadastro_agenda, name='cadastro_agenda'),
     path('relatorio-presenca/', views.relatorio_presenca, name='relatorio_presenca'),
     path('painel/exportar-pdf/', views.exportar_pdf, name='exportar_pdf'),
+
+    path('asscontrato/', views.asscontrato, name='asscontrato'),
+
+    # ======= ROTAS QUE FALTAVAM =======
+    path("cliente/<str:nome>/<str:codigo>/", views.mensagem_view, name="mensagem_cliente"),
+
+    path("cliente/link/excluir/<int:pk>/", views.excluir_link, name="excluir_link"),
+
 ]

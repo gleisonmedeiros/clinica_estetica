@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 class Cliente(models.Model):
     nome = models.CharField(max_length=100)
@@ -6,6 +7,7 @@ class Cliente(models.Model):
     area = models.CharField(max_length=100,default='Geral')
 
     def __str__(self):
+        #return f"{self.nome} ({self.telefone} {self.area})"
         return f"{self.nome} ({self.telefone} {self.area})"
 
 
@@ -30,3 +32,11 @@ class Painel(models.Model):
     def __str__(self):
         status = "Compareceu" if self.presenca else "Faltou"
         return f"Painel: {self.agenda} - {status}"
+
+class ClienteLink(models.Model):
+    cliente = models.ForeignKey("Cliente", on_delete=models.CASCADE)
+    codigo = models.CharField(max_length=50, unique=True)
+    link_completo = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return self.link_completo

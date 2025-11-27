@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Ass. de Contrato{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h3 class="mb-4">Assinatura de Contrato</h3>
+
+    <!-- ================= FORM GET (BOTÃO OK) ================= -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Cliente</label>
+                    {{ form.nome }}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Selecionado</label>
+                    <input type="text" class="form-control" value="{{ cliente_selecionado }}" disabled>
+                </div>
+
+                <div class="col-12 mt-3">
+                    <button type="submit" class="btn btn-primary">OK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================ LINK GERADO APÓS OK ================= -->
+    {% if link_completo %}
+    <div class="card mb-4 border-success shadow-sm">
+        <div class="card-body">
+            <h5 class="mb-2 fw-bold text-success">Link Gerado:</h5>
+
+            <a href="{{ link_completo }}" class="text-decoration-none" target="_blank">
+                {{ link_completo }}
+            </a>
+
+            <button class="btn btn-outline-primary btn-sm ms-2"
+                    onclick="copiarLink('{{ link_completo }}', this)">
+                Copiar
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ================ LISTA DE LINKS SALVOS ================= -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+
+            <h4 class="fw-bold mb-3">Links Gerados</h4>
+
+            {% if links %}
+            <ul class="list-group">
+                {% for l in links %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+
+                    <div>
+                        <strong>{{ l.cliente.nome }}</strong><br>
+                        <a href="{{ l.link_completo }}" target="_blank">
+                            {{ l.link_completo }}
+                        </a>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <!-- Botão Copiar -->
+                        <button class="btn btn-outline-primary btn-sm"
+                                onclick="copiarLink('{{ l.link_completo }}', this)">
+                            Copiar
+                        </button>
+
+                        <!-- Botão Excluir -->
+                        <a href="{% url 'excluir_link' l.id %}"
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirm('Excluir este link?');">
+                            Excluir
+                        </a>
+                    </div>
+
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted">Nenhum link gerado ainda.</p>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= SCRIPT COPIAR ================= -->
+<script>
+function copiarLink(texto, botao) {
+    navigator.clipboard.writeText(texto).then(() => {
+        botao.innerText = "Copiado!";
+        botao.classList.remove("btn-outline-primary");
+        botao.classList.add("btn-success");
+
+        setTimeout(() => {
+            botao.innerText = "Copiar";
+            botao.classList.remove("btn-success");
+            botao.classList.add("btn-outline-primary");
+        }, 1500);
+    });
+}
+</script>
+
+{% endblock %}
