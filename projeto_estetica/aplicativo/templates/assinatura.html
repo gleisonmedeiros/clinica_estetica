@@ -6,77 +6,143 @@
 <div class="container mt-5">
 
     <div class="card shadow p-4 text-center">
-
         <h2 class="mb-3">Olá, {{ cliente.nome }}! 👋</h2>
-
-        <p class="lead">
-            Assine o contrato abaixo.
-        </p>
-
-        <p>
-            Área do procedimento: {{ cliente.area }}
-        </p>
-
+        <p class="lead">Assine o contrato abaixo.</p>
+        <p>Área do procedimento: {{ cliente.area }}</p>
     </div>
 
 </div>
-        <!-- ================= FORM POST (ASSINATURA) ================= -->
-    <div class="card shadow-sm">
-        <div class="card-body">
 
-            <h4 class="mb-3">Assine abaixo:</h4>
+<!-- ================= FORM POST (ASSINATURA) ================= -->
+<div class="card shadow-sm mt-4">
+    <div class="card-body">
 
-            <form method="post">
-                {% csrf_token %}
+        <h4 class="mb-3 text-center">Assine abaixo:</h4>
 
-                <div class="d-flex justify-content-center mb-3">
-                    <canvas id="pad" width="400" height="200" class="border border-2 rounded"></canvas>
-                </div>
+        <form method="post">
+            {% csrf_token %}
 
-                <div class="d-flex gap-2 justify-content-center mb-3">
-                    <button type="button" class="btn btn-secondary" onclick="limpar()">Limpar</button>
-                    <button type="button" class="btn btn-success" onclick="salvar()">Salvar Assinatura</button>
-                </div>
+            <div class="d-flex justify-content-center mb-3">
+                <canvas id="pad" width="400" height="200"
+                        class="border border-2 rounded w-100"
+                        style="max-width: 450px;"></canvas>
+            </div>
 
-                <input type="hidden" name="imagem" id="imagem">
-            </form>
+            <div class="d-flex gap-2 justify-content-center mb-3">
+                <button type="button" class="btn btn-secondary" onclick="limpar()">Limpar</button>
+                <button type="button" class="btn btn-success" onclick="salvar()">Salvar Assinatura</button>
+            </div>
 
-        </div>
+            <input type="hidden" name="imagem" id="imagem">
+        </form>
+
     </div>
-
 </div>
 
 <script>
-let canvas = document.getElementById('pad');
-let ctx = canvas.getContext('2d');
+// ==============================================================
+// CONFIGURAÇÃO DO CANVAS COM DESENHO SUAVE E SINCRONIZADO
+// ==============================================================
+
+let canvas = document.getElementById("pad");
+let ctx = canvas.getContext("2d");
+
 let desenhando = false;
+let pontos = [];
+let ultimaPos = null;
 
-canvas.addEventListener('mousedown', () => desenhando = true);
-canvas.addEventListener('mouseup', () => {
-    desenhando = false;
-    ctx.beginPath();
-});
-canvas.addEventListener('mousemove', desenhar);
+// ============ CORREÇÃO ABSOLUTA DE ESCALA (TOQUE E MOUSE) ============
+function getPos(e) {
+    let rect = canvas.getBoundingClientRect();
 
-function desenhar(e) {
-    if (!desenhando) return;
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#000";
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(e.offsetX, e.offsetY);
+    // fator de escala entre dimensão real e dimensão CSS
+    let escalaX = canvas.width / rect.width;
+    let escalaY = canvas.height / rect.height;
+
+    let x, y;
+
+    if (e.touches) {
+        let t = e.touches[0];
+        x = (t.clientX - rect.left) * escalaX;
+        y = (t.clientY - rect.top) * escalaY;
+    } else {
+        x = (e.clientX - rect.left) * escalaX;
+        y = (e.clientY - rect.top) * escalaY;
+    }
+
+    return { x, y };
 }
 
+// Início do desenho
+function iniciarDesenho(e) {
+    desenhando = true;
+    pontos = [];
+    ultimaPos = getPos(e);
+    pontos.push(ultimaPos);
+    e.preventDefault();
+}
+
+// Termina o desenho
+function encerrarDesenho() {
+    desenhando = false;
+    ultimaPos = null;
+    pontos = [];
+}
+
+// Movendo o dedo/mouse
+function mover(e) {
+    if (!desenhando) return;
+    let pos = getPos(e);
+    pontos.push(pos);
+    e.preventDefault();
+}
+
+// ================= DESENHO SUAVE COM ANIMAÇÃO =================
+function loopDesenho() {
+    if (pontos.length > 1) {
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#000";
+
+        ctx.beginPath();
+        ctx.moveTo(pontos[0].x, pontos[0].y);
+
+        for (let i = 1; i < pontos.length; i++) {
+            ctx.lineTo(pontos[i].x, pontos[i].y);
+        }
+
+        ctx.stroke();
+
+        // Mantém apenas o último ponto para suavidade
+        pontos = [pontos[pontos.length - 1]];
+    }
+
+    requestAnimationFrame(loopDesenho);
+}
+loopDesenho();
+
+// ==================== EVENTOS MOUSE ====================
+canvas.addEventListener("mousedown", iniciarDesenho);
+canvas.addEventListener("mouseup", encerrarDesenho);
+canvas.addEventListener("mousemove", mover);
+
+// ==================== EVENTOS TOUCH ====================
+canvas.addEventListener("touchstart", iniciarDesenho, { passive: false });
+canvas.addEventListener("touchend", encerrarDesenho);
+canvas.addEventListener("touchmove", mover, { passive: false });
+
+// ==================== FUNÇÃO LIMPAR ====================
 function limpar() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
 }
 
+// ==================== FUNÇÃO SALVAR ====================
 function salvar() {
     let dataURL = canvas.toDataURL("image/png");
     document.getElementById("imagem").value = dataURL;
     document.forms[1].submit();
 }
 </script>
+
 {% endblock %}
